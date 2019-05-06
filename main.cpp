@@ -9,6 +9,19 @@ using namespace std;
 static string load = "100011";
 static string store = "101011";
 
+class block{
+	public:
+		int valid;
+		int history;
+		int tag;
+		int data;
+		block(){
+			valid = 0;
+			history = 0;
+			tag = 0;
+			data = 0;
+		}
+}
 
 vector<string> getInstr(){
 	cout<< "getInstr" << endl;
@@ -57,6 +70,16 @@ int getSet(int wordAddr){
 	return wordAddr%8;
 }
 
+int getByte(int rs, int offset){
+	return rs + offset;
+
+}
+
+int getWord(int rs, int offset){
+	return (rs + offset)/4;
+
+}
+
 void printList(vector<string> instructions){
 	cout<<"printList"<<endl;
 	for(int i = 0; i < instructions.size(); i++){
@@ -67,12 +90,24 @@ void printList(vector<string> instructions){
 	cout<<"Done!" <<endl;
 }
 
+void hitMiss(vector<block> cache, vector<int> registers, string instr){
+	int op = decodeOP(instr);
+	int rs = decodeRS(instr);
+	int rt = decodeRT(instr);
+	int offset = decodeOF(instr);
+	int byteAddr = getByte(rs, offset);
+	int wordAddr = getWord(rs, offset);
+	int set = getSet(wordAddr);
+	int tag = getTag(wordAddr);
+
+
+}
+
 int main(){
 	cout<< "Main Running!" << endl;
 	vector<string> instructions = getInstr();
-   	for(int i = 0; i < 24; i++){
-   	cout<< decodeOF(instructions.at(i)) << endl;
-   	}
-   	cin.ignore();
+	vector<block> cache(8); 
+	vector<int> registers(32);
+   	
   	return 0;
 }
