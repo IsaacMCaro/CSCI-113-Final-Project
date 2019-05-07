@@ -21,7 +21,7 @@ class block{
 			tag = 0;
 			data = 0;
 		}
-}
+};
 
 vector<string> getInstr(){
 	cout<< "getInstr" << endl;
@@ -90,7 +90,51 @@ void printList(vector<string> instructions){
 	cout<<"Done!" <<endl;
 }
 
-void hitMiss(vector<block> cache, vector<int> registers, string instr){
+int checkCache(block *cache, int tag){
+	if (cache[0].valid == 1 && cache[0].tag == tag) return 0;
+	else if (cache[1].valid == 1 && cache[1].tag == tag) return 1;
+	else return -1;
+}
+
+int calcMemAddr(int tag, int set){
+	return (tag * 8) + set;
+}
+
+int selectVictim(block *cache){
+	if (cache[0].history == 1){
+		cache[1].history = 1;
+		cache[0].history = 0;
+		return 1;
+
+	}
+	else{
+		cache[0].history = 1;
+		cache[1].history = 0;
+		return 0;
+	}
+}
+
+void displayMem(vector<int> mem){
+	for(int i = 0; i <128; i++){
+		cout<< "Mem Block " <<i<<": " << mem.at(i) << endl; 
+	}
+
+}
+
+void displayReg(vector<int> reg){
+	for (int i = 0; i < 8; i++){
+		cout<< "Reg $s" <<i<<": " << reg.at(i) << endl; 
+	}
+}
+
+void displayCache(block **cache){
+	for(int i = 0; i < 8; i++){
+		cout<<"Cache Index "<<i<< ": "<<"Block "<< 0<< ": "<< " | VALID = "<< cache[i][0].valid << " | HIST = "<< cache[i][0].history << " | TAG = "<< cache[i][0].tag << " | "<< "Block "<< 1<< ": "<< " | VALID = "<< cache[i][1].valid << " | HIST = "<< cache[i][1].history << " | TAG = "<< cache[i][1].tag << " |"<< endl;
+
+	}
+}
+
+void runInstruction(block** cache, vector<int> registers, vector<int> mem, string instr){
 	int op = decodeOP(instr);
 	int rs = decodeRS(instr);
 	int rt = decodeRT(instr);
@@ -100,14 +144,59 @@ void hitMiss(vector<block> cache, vector<int> registers, string instr){
 	int set = getSet(wordAddr);
 	int tag = getTag(wordAddr);
 
+	int res = checkCache(cache[set], tag); //will return block if hit, -1 if miss
+	if (res == -1){ // miss
+		if (op == 35){ // read miss
+			int vic = selectVictim(cache[set]);
+			if (cache[set][vic].valid==1){ //step 2
+				int addr = (cache[set][vic].tag * 8) + set;
+				mem.at(addr) = cache[set][vic].data;
 
+				}
+			cache[set][vic].data = mem.at(wordAddr);//step 3
+			cache[set][vic].valid = 1;//step 4
+			cache[set][vic].tag = tag;//step 4
+			registers.at(rt) = cache[set][vic].data; //step 5
+
+			}	
+		else if (op == 43){ // write miss
+			mem.at(wordAddr) = registers.at(rt);
+
+		}
+	
+		else {
+			cout<<"error within checkCache"<<endl;
+		}
+	}
+	else if (res ==1 || res == 0){ //read or write hit
+		if (op == 35){ // read hit
+			registers.at(rt) = cache[set][res].data;
+			cache[set][res].history = 1;
+			cache[set][1-res].history = 0;
+		}
+		else if (op == 43){ // write hit
+			cache[set][res].data = registers.at(rt);
+			cache[set][res].history = 1;
+			cache[set][1-res].history = 0;	
+
+		}
+		cout<<"Hit!"<<endl;
+	}
+	
 }
 
 int main(){
 	cout<< "Main Running!" << endl;
 	vector<string> instructions = getInstr();
-	vector<block> cache(8); 
+	block cache[8][2];
 	vector<int> registers(32);
-   	
+	vector<int> mem(128);
+   	for (int i = 0; i<instructions.size(); i++){
+   		runInstruction(&cache, &registers, &mem, instructions.at(i));
+   	}
+   	displayReg(registers);
+   	displayMem(mem);
+   	displayCache(cache);
+
   	return 0;
 }
